@@ -87,6 +87,9 @@ int main(int argc, char* argv[]) {
 
         pid_t dirDisplayPid = fork();
 
+        printf("[Display directory] I am child. ");
+        printf("My pid = %d, my parent is %d and I have no child\n",
+               (int)getpid(), (int)getppid() );
         if (dirDisplayPid == -1) {
             printf("Incorrect fork syscall\n");
         } else if (dirDisplayPid == 0) {

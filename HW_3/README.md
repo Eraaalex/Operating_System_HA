@@ -2,11 +2,11 @@
 
 ### Результат выполнения работы:
 
-![img_2.png](imgs/img_2.png)im
+![img.png](imgs/img.png)
 
 #### Переполнение:  
 (по умолчанию факториал и фибоначчи принимают значение 0)
 
 ![img_3.png](imgs/img_3.png)
 
-![img_4.png](imgs/img_4.png)
+![img_2.png](imgs/img_2.png)
