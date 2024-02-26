@@ -1,38 +1,42 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
-#include <stdlib.h>
 
-void signal_handler(int sig) {
-    static int bit_count = 0;
-    static int received_number = 0;
-    
-    if (sig == SIGUSR1) {
-        received_number |= (1 << bit_count);
-    }
-    
-    bit_count++;
-    
-    if (bit_count == sizeof(int) * 8) {
-        printf("[Receiver] Received number: %d\n", received_number);
-        exit(0);
-    }
+int sender_pid;
+int received_num = 0;
+int current_bit = 0;
+
+void process_SIGUSR1(int signal) {
+    received_num |= (0 << current_bit);
+    current_bit++;
+    kill(sender_pid, SIGUSR1);
+}
+
+
+void process_SIGUSR2(int signal) {
+    received_num |= (1 << current_bit);
+    current_bit++;
+    kill(sender_pid, SIGUSR1);
 }
 
 int main() {
     printf("[Receiver] PID: %d\n", getpid());
-    printf("[Receiver] Please enter the PID of the sender: ");
-    int server_pid;
-    scanf("%d", &server_pid);
-    
-    signal(SIGUSR1, signal_handler);
-    signal(SIGUSR2, signal_handler);
-    
+    printf("Input sender PID: ");
+    scanf("%d", &sender_pid);
+
+    signal(SIGUSR1, process_SIGUSR1);
+    signal(SIGUSR2, process_SIGUSR2);
+
     printf("[Receiver] Waiting...\n");
-    
-    while(1) {
+
+    while (current_bit < 32) {
         pause();
     }
-    
+
+    printf("\n");
+
+    printf("[Receiver] Result number: %d\n", received_num);  // Выводим полученное число
+
     return 0;
 }
