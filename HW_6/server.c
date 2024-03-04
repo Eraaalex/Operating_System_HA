@@ -1,66 +1,47 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/shm.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<sys/shm.h>
+#include<stdlib.h>
+#include<error.h>
+#include<signal.h>
 
-#define SHM_KEY 1234
+int shm_id;
+int *share;
+int client_pid;
 
-typedef struct {
-    int data;
-    volatile int flag;
-} shared_data;
 
-// Объявление глобальной переменной для хранения ID разделяемой памяти
-int shmid;
-
-void cleanup(int sig) {
-    // Получаем доступ к разделяемой памяти
-    shared_data *data = (shared_data *)shmat(shmid, NULL, 0);
-    if (data != (shared_data *)(-1)) {
-        // Отсоединяемся от сегмента разделяемой памяти
-        shmdt((void *) data);
-        // Удаляем сегмент разделяемой памяти
-        shmctl(shmid, IPC_RMID, NULL);
+void cleanup(int signum) {
+    if (signum == SIGINT ) {
+        kill(client_pid, SIGINT);
     }
-    printf("Server shutdown gracefully.\n");
-    exit(0); // Завершаем работу сервера
+
+    shmdt(share);
+    shmctl(shm_id, IPC_RMID, NULL);
+    exit(0);
 }
 
 int main() {
-    // Регистрируем обработчик сигнала
+    printf("[Server] PID: %d\n", getpid());
+    printf("Please, enter the pid of the server: ");
+    scanf("%d", &client_pid);
     signal(SIGINT, cleanup);
 
-    // Создаем сегмент разделяемой памяти
-    shmid = shmget(SHM_KEY, sizeof(shared_data), IPC_CREAT | 0666);
-    if (shmid < 0) {
-        perror("shmget");
+    shm_id = shmget (0x2FF, getpagesize(), 0666 | IPC_CREAT);
+    if(shm_id == -1){
+        perror("Error 1");
         exit(1);
     }
 
-    shared_data *data = (shared_data *)shmat(shmid, NULL, 0);
-    if (data == (shared_data *)(-1)) {
-        perror("shmat");
-        exit(1);
+    share = (int *)shmat(shm_id, 0, 0);
+    if(share == NULL){
+        perror("Error 2");
+        exit(2);
     }
 
-    data->flag = 0; // Инициализация флага
-
-    // Основной цикл сервера
-    while (1) {
-        while (data->flag == 0) {
-            sleep(1);
-        }
-        if (data->data == -1) {
-            printf("Termination signal received. Shutting down.\n");
-            break;
-        }
-        printf("Received: %d\n", data->data);
-        data->flag = 0;
+    while(1){
+        sleep(1);
+        printf("[Server] received: %d\n", *share);
     }
-
-    cleanup(0); // Вызываем функцию очистки ресурсов
 
     return 0;
 }
